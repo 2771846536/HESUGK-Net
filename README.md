@@ -1,10 +1,10 @@
 # HESUGK-Net: Hypergraph Edge-Sparse Uncertainty-Guided Kalman Gain Network for Electric Power Anomaly Detection
-### 🦄 Dependencies
-To run the code, make sure you have the following dependencies installed:
+
 
 <img width="4195" height="1748" alt="HESUGK" src="https://github.com/user-attachments/assets/65e57c12-566c-4c45-8476-b81f8a2eacc6" />
 
-
+### 🦄 Dependencies
+To run the code, make sure you have the following dependencies installed:
 
 | Dependency | Version |
 |------------|---------|
@@ -16,3 +16,9 @@ To run the code, make sure you have the following dependencies installed:
 ### Train
 ```bash
 python train.py
+
+### Citation
+If our work assists your research, feel free to give us a star ⭐ or cite us using:
+
+### Thanks
+Center for Advanced Computing, School of Computer Science, China Three Gorges University
