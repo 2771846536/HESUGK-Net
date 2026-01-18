@@ -2,7 +2,8 @@
 ### 🦄 Dependencies
 To run the code, make sure you have the following dependencies installed:
 
-![Uploading HESUGK.png…]()
+<img width="4195" height="1748" alt="HESUGK" src="https://github.com/user-attachments/assets/65e57c12-566c-4c45-8476-b81f8a2eacc6" />
+
 
 
 | Dependency | Version |
