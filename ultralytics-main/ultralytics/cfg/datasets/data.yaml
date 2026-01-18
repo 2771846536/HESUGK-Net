@@ -1,0 +1,12 @@
+# data.yaml
+
+train: E:\dataset\split_balanced\train\images
+val: E:\dataset\split_balanced\val\images
+
+nc: 4
+
+names:
+  - breakage
+  - Flashover
+  - Insulator-loss
+  - Insulator

@@ -1,0 +1,78 @@
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
+
+# Custom YOLO11n with dual-branch shallow layers using HyperSparseFuseModule and KFFusion in head
+# Model docs: https://docs.ultralytics.com/models/yolo11
+# Task docs: https://docs.ultralytics.com/tasks/detect
+
+# Parameters
+nc: 4 # number of classes (adjusted to standard YOLO11n value)
+scales: # model compound scaling constants, i.e. 'model=yolo11n.yaml' will call yolo11.yaml with scale 'n'
+  # [depth, width, max_channels]
+  n: [0.50, 0.25, 1024] # summary: 319 layers, 2624080 parameters, 2624064 gradients, 6.6 GFLOPs
+  s: [0.50, 0.50, 1024] # summary: 319 layers, 9458752 parameters, 9458736 gradients, 21.7 GFLOPs
+  m: [0.50, 1.00, 512] # summary: 409 layers, 20114688 parameters, 20114672 gradients, 68.5 GFLOPs
+  l: [1.00, 1.00, 512] # summary: 631 layers, 25372160 parameters, 25372144 gradients, 87.6 GFLOPs
+  x: [1.00, 1.50, 512] # summary: 631 layers, 56966176 parameters, 56966160 gradients, 196.0 GFLOPs
+
+# Custom YOLO11n backbone with dual branches in first 5 layers
+backbone:
+  # Dual-branch for first 5 layers with shared HyperSparseFuseModule
+  # Layer 1
+  - [-1, 1, Rx, [3,1]] # 0: branch_b0 (P1)
+  - [-1, 1, Filter, []] # 1: branch_b0 (P1)
+  - [ 0, 1, Conv, [ 64, 3, 2 ] ] # 2: branch_a0 (P1/2)
+  - [1, 1, Conv, [64, 3, 2]] # 3: branch_b0 (P1/2)
+  - [[2, 3], 1, HyperSparseFuseModule, [16, 16]] # 4: Hyper0 (z0, in_channels=64, out_channels=64, k=8, reduction_ratio=16, thresh=0.1, pe_dim=16)
+
+  # Layer 2
+  - [4, 1, Conv, [128, 3, 2]] # 5: branch_a1 (P2/4)
+  - [3, 1, Conv, [128, 3, 2]] # 6: branch_b1 (P2/4)
+  - [[5, 6], 1, HyperSparseFuseModule, [32, 32]] # 7: Hyper1 (z1, in_channels=128, out_channels=128, k=8, reduction_ratio=16, thresh=0.1, pe_dim=16)
+
+  # Layer 3
+  - [7, 2, C3k2, [256, False, 0.25]] # 8: branch_a2
+  - [6, 2, C3k2, [256, False, 0.25]] # 9: branch_b2
+  - [[8, 9], 1, HyperSparseFuseModule, [64, 64]] # 10: Hyper2 (z2, in_channels=256, out_channels=256, k=8, reduction_ratio=16, thresh=0.1, pe_dim=16)
+
+  # Layer 4
+  - [10, 1, Conv, [256, 3, 2]] # 11: branch_a3 (P3/8)
+  - [9, 1, Conv, [256, 3, 2]] # 12: branch_b3 (P3/8)
+  - [[11, 12], 1, HyperSparseFuseModule, [64, 64]] # 13: Hyper3 (z3, in_channels=256, out_channels=256, k=8, reduction_ratio=16, thresh=0.1, pe_dim=16)
+
+  # Layer 5
+  - [13, 2, C3k2, [512, False, 0.25]] # 14: branch_a4
+  - [12, 2, C3k2, [512, False, 0.25]] # 15: branch_b4
+  - [[14, 15], 1, HyperSparseFuseModule, [128,128]] # 16: Hyper4 (z4, equivalent to original P3/8 output, in_channels=512, out_channels=512, k=8, reduction_ratio=16, thresh=0.1, pe_dim=16)
+
+  # Remaining YOLO11n backbone layers (from original layer 5 onwards, using last Hyper output as input)
+  - [-1, 1, Conv, [512, 3, 2]] # 17: P4/16
+  - [-1, 2, C3k2, [512, True]] # 18
+  - [-1, 1, Conv, [1024, 3, 2]] # 19: P5/32
+  - [-1, 2, C3k2, [1024, True]] # 20
+  - [-1, 1, SPPF, [1024, 5]] # 21
+  - [-1, 2, C2PSA, [1024]] # 22
+
+# YOLO11n head with KFFusion modules
+head:
+  # P5 -> P4
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]   # 23: P5/32 -> P4/16
+  - [[18, -1], 1, Concat, [1]]                   # 24: concat(P4_backbone, up_P5)
+  - [-1, 2, C3k2, [512, False]]                  # 25: P4_head
+
+  # P4 -> P3
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]   # 26: P4/16 -> P3/8
+  - [[16, -1], 1, Concat, [1]]                   # 27: concat(P3_backbone, up_P4)
+  - [-1, 2, C3k2, [256, False]]                  # 28: P3_head (small)
+
+  # P3 -> P4
+  - [-1, 1, Conv, [256, 3, 2]]                   # 29: down P3/8 -> P4/16
+  - [[25, -1], 1, Concat, [1]]                   # 30: concat(P4_head, down_P3)
+  - [-1, 2, C3k2, [512, False]]                  # 31: P4_head (medium)
+
+  # P4 -> P5
+  - [-1, 1, Conv, [512, 3, 2]]                   # 32: down P4/16 -> P5/32
+  - [[22, -1], 1, Concat, [1]]                   # 33: concat(P5_backbone, down_P4)
+  - [-1, 2, C3k2, [1024, True]]                  # 34: P5_head (large)
+
+  - [[28, 31, 34], 1, Detect, [nc]]              # 35
+
