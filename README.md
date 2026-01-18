@@ -13,8 +13,17 @@ To run the code, make sure you have the following dependencies installed:
 | CUDA       | 12.6    |
 | Ubuntu     | 22.04   |
 
-### Train
+### Install
+Install the ultralytics package, including all requirements, in a Python>=3.8 environment with PyTorch>=1.8.
 ```bash
+conda create -n HESUGK-net python=3.9.19
+conda activate HESUGK-net
+pip install ultralytics
+pip install -r requirements.txt
+pip install -e .
+```
+
+### Train
 python train.py
 
 ### Citation
