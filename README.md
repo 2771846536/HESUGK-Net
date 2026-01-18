@@ -2,6 +2,9 @@
 ### 🦄 Dependencies
 To run the code, make sure you have the following dependencies installed:
 
+![Uploading HESUGK.png…]()
+
+
 | Dependency | Version |
 |------------|---------|
 | Pytorch    | 2.3.0   |
